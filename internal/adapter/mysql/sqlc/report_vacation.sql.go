@@ -49,15 +49,14 @@ func (q *Queries) DeleteVacation(ctx context.Context, id string) error {
 	return err
 }
 
-const getUserVacations = `-- name: GetUserVacations :many
-
+const getAdminVacationsByYear = `-- name: GetAdminVacationsByYear :many
 SELECT id, user_id, start_date, end_date, year, COALESCE(description, '') as description, status, create_at
 FROM report_vacation
-WHERE user_id = ?
+WHERE year = ?
 ORDER BY create_at DESC
 `
 
-type GetUserVacationsRow struct {
+type GetAdminVacationsByYearRow struct {
 	ID          string               `json:"id"`
 	UserID      string               `json:"userId"`
 	StartDate   time.Time            `json:"startDate"`
@@ -68,73 +67,15 @@ type GetUserVacationsRow struct {
 	CreateAt    time.Time            `json:"createAt"`
 }
 
-// ============================================
-// REPORT_VACATION queries
-// ============================================
-func (q *Queries) GetUserVacations(ctx context.Context, userID string) ([]GetUserVacationsRow, error) {
-	rows, err := q.db.QueryContext(ctx, getUserVacations, userID)
+func (q *Queries) GetAdminVacationsByYear(ctx context.Context, year int32) ([]GetAdminVacationsByYearRow, error) {
+	rows, err := q.db.QueryContext(ctx, getAdminVacationsByYear, year)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []GetUserVacationsRow
+	var items []GetAdminVacationsByYearRow
 	for rows.Next() {
-		var i GetUserVacationsRow
-		if err := rows.Scan(
-			&i.ID,
-			&i.UserID,
-			&i.StartDate,
-			&i.EndDate,
-			&i.Year,
-			&i.Description,
-			&i.Status,
-			&i.CreateAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const getUserVacationsByYear = `-- name: GetUserVacationsByYear :many
-SELECT id, user_id, start_date, end_date, year, COALESCE(description, '') as description, status, create_at
-FROM report_vacation
-WHERE user_id = ? AND year = ?
-ORDER BY create_at DESC
-`
-
-type GetUserVacationsByYearParams struct {
-	UserID string `json:"userId"`
-	Year   int32  `json:"year"`
-}
-
-type GetUserVacationsByYearRow struct {
-	ID          string               `json:"id"`
-	UserID      string               `json:"userId"`
-	StartDate   time.Time            `json:"startDate"`
-	EndDate     time.Time            `json:"endDate"`
-	Year        int32                `json:"year"`
-	Description string               `json:"description"`
-	Status      ReportVacationStatus `json:"status"`
-	CreateAt    time.Time            `json:"createAt"`
-}
-
-func (q *Queries) GetUserVacationsByYear(ctx context.Context, arg GetUserVacationsByYearParams) ([]GetUserVacationsByYearRow, error) {
-	rows, err := q.db.QueryContext(ctx, getUserVacationsByYear, arg.UserID, arg.Year)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []GetUserVacationsByYearRow
-	for rows.Next() {
-		var i GetUserVacationsByYearRow
+		var i GetAdminVacationsByYearRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.UserID,
@@ -240,12 +181,71 @@ func (q *Queries) GetVacationById(ctx context.Context, id string) (GetVacationBy
 	return i, err
 }
 
+const getVacations = `-- name: GetVacations :many
+
+SELECT id, user_id, start_date, end_date, year, COALESCE(description, '') as description, status, create_at
+FROM report_vacation
+WHERE user_id = ?
+ORDER BY create_at DESC
+`
+
+type GetVacationsRow struct {
+	ID          string               `json:"id"`
+	UserID      string               `json:"userId"`
+	StartDate   time.Time            `json:"startDate"`
+	EndDate     time.Time            `json:"endDate"`
+	Year        int32                `json:"year"`
+	Description string               `json:"description"`
+	Status      ReportVacationStatus `json:"status"`
+	CreateAt    time.Time            `json:"createAt"`
+}
+
+// ============================================
+// REPORT_VACATION queries
+// ============================================
+func (q *Queries) GetVacations(ctx context.Context, userID string) ([]GetVacationsRow, error) {
+	rows, err := q.db.QueryContext(ctx, getVacations, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetVacationsRow
+	for rows.Next() {
+		var i GetVacationsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.StartDate,
+			&i.EndDate,
+			&i.Year,
+			&i.Description,
+			&i.Status,
+			&i.CreateAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getVacationsByYear = `-- name: GetVacationsByYear :many
 SELECT id, user_id, start_date, end_date, year, COALESCE(description, '') as description, status, create_at
 FROM report_vacation
-WHERE year = ?
+WHERE user_id = ? AND year = ?
 ORDER BY create_at DESC
 `
+
+type GetVacationsByYearParams struct {
+	UserID string `json:"userId"`
+	Year   int32  `json:"year"`
+}
 
 type GetVacationsByYearRow struct {
 	ID          string               `json:"id"`
@@ -258,8 +258,8 @@ type GetVacationsByYearRow struct {
 	CreateAt    time.Time            `json:"createAt"`
 }
 
-func (q *Queries) GetVacationsByYear(ctx context.Context, year int32) ([]GetVacationsByYearRow, error) {
-	rows, err := q.db.QueryContext(ctx, getVacationsByYear, year)
+func (q *Queries) GetVacationsByYear(ctx context.Context, arg GetVacationsByYearParams) ([]GetVacationsByYearRow, error) {
+	rows, err := q.db.QueryContext(ctx, getVacationsByYear, arg.UserID, arg.Year)
 	if err != nil {
 		return nil, err
 	}
@@ -318,33 +318,6 @@ func (q *Queries) GetYearsVacation(ctx context.Context, userID string) ([]int32,
 		return nil, err
 	}
 	return items, nil
-}
-
-const updateVacation = `-- name: UpdateVacation :exec
-UPDATE report_vacation
-SET start_date = ?, end_date = ?, year = ?, status = ?,  description = ?
-WHERE id = ?
-`
-
-type UpdateVacationParams struct {
-	StartDate   time.Time            `json:"startDate"`
-	EndDate     time.Time            `json:"endDate"`
-	Year        int32                `json:"year"`
-	Status      ReportVacationStatus `json:"status"`
-	Description sql.NullString       `json:"description"`
-	ID          string               `json:"id"`
-}
-
-func (q *Queries) UpdateVacation(ctx context.Context, arg UpdateVacationParams) error {
-	_, err := q.db.ExecContext(ctx, updateVacation,
-		arg.StartDate,
-		arg.EndDate,
-		arg.Year,
-		arg.Status,
-		arg.Description,
-		arg.ID,
-	)
-	return err
 }
 
 const updateVacationStatus = `-- name: UpdateVacationStatus :exec

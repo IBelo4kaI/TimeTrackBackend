@@ -50,7 +50,7 @@ func (h *Handler) List(c *fiber.Ctx) error {
 		return h.respondError(c, http.StatusBadRequest, "invalid year parameter")
 	}
 
-	prm := repo.GetUserMonthReportParams{
+	prm := repo.GetReportUserForMonthParams{
 		UserID: userID,
 		Month:  int32(month),
 		Year:   int32(year),
@@ -68,6 +68,36 @@ func (h *Handler) List(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(report)
+}
+
+func (h *Handler) MonthStats(c *fiber.Ctx) error {
+	userID := c.Params("user")
+	if userID == "" {
+		return h.respondError(c, http.StatusBadRequest, "user ID is required")
+	}
+
+	month, err := c.ParamsInt("month")
+	if err != nil || month < 1 || month > 12 {
+		return h.respondError(c, http.StatusBadRequest, "invalid month parameter")
+	}
+
+	year, err := c.ParamsInt("year")
+	if err != nil || year < 1900 || year > 2100 {
+		return h.respondError(c, http.StatusBadRequest, "invalid year parameter")
+	}
+
+	monthStats, err := h.service.MonthStats(c.Context(), userID, int32(month), int32(year))
+	if err != nil {
+		h.logger.Error("failed to list reports",
+			slog.String("user_id", userID),
+			slog.Int("month", month),
+			slog.Int("year", year),
+			slog.String("error", err.Error()),
+		)
+		return h.respondError(c, http.StatusInternalServerError, "failed to retrieve reports")
+	}
+
+	return c.JSON(monthStats)
 }
 
 type createRequest struct {
@@ -201,7 +231,7 @@ func (h *Handler) Delete(c *fiber.Ctx) error {
 		return h.respondError(c, http.StatusBadRequest, "invalid day parameter")
 	}
 
-	err = h.service.Delete(c.Context(), repo.DeleteUserReportParams{
+	err = h.service.Delete(c.Context(), repo.DeleteReportUserParams{
 		UserID: userID,
 		Day:    int32(day),
 		Month:  int32(month),

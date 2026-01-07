@@ -9,40 +9,40 @@ import (
 	"context"
 )
 
-const createReportType = `-- name: CreateReportType :exec
+const createType = `-- name: CreateType :exec
 INSERT INTO report_type (id, name, system_name)
 VALUES (?, ?, ?)
 `
 
-type CreateReportTypeParams struct {
+type CreateTypeParams struct {
 	ID         string `json:"id"`
 	Name       string `json:"name"`
 	SystemName string `json:"systemName"`
 }
 
-func (q *Queries) CreateReportType(ctx context.Context, arg CreateReportTypeParams) error {
-	_, err := q.db.ExecContext(ctx, createReportType, arg.ID, arg.Name, arg.SystemName)
+func (q *Queries) CreateType(ctx context.Context, arg CreateTypeParams) error {
+	_, err := q.db.ExecContext(ctx, createType, arg.ID, arg.Name, arg.SystemName)
 	return err
 }
 
-const deleteReportType = `-- name: DeleteReportType :exec
+const deleteType = `-- name: DeleteType :exec
 DELETE FROM report_type
 WHERE id = ?
 `
 
-func (q *Queries) DeleteReportType(ctx context.Context, id string) error {
-	_, err := q.db.ExecContext(ctx, deleteReportType, id)
+func (q *Queries) DeleteType(ctx context.Context, id string) error {
+	_, err := q.db.ExecContext(ctx, deleteType, id)
 	return err
 }
 
-const getAllReportTypes = `-- name: GetAllReportTypes :many
+const getTypeAll = `-- name: GetTypeAll :many
 SELECT id, name, system_name
 FROM report_type
 ORDER BY name ASC
 `
 
-func (q *Queries) GetAllReportTypes(ctx context.Context) ([]ReportType, error) {
-	rows, err := q.db.QueryContext(ctx, getAllReportTypes)
+func (q *Queries) GetTypeAll(ctx context.Context) ([]ReportType, error) {
+	rows, err := q.db.QueryContext(ctx, getTypeAll)
 	if err != nil {
 		return nil, err
 	}
@@ -64,7 +64,7 @@ func (q *Queries) GetAllReportTypes(ctx context.Context) ([]ReportType, error) {
 	return items, nil
 }
 
-const getReportTypeById = `-- name: GetReportTypeById :one
+const getTypeById = `-- name: GetTypeById :one
 
 SELECT id, name, system_name
 FROM report_type
@@ -74,39 +74,39 @@ WHERE id = ?
 // ============================================
 // REPORT_TYPE queries
 // ============================================
-func (q *Queries) GetReportTypeById(ctx context.Context, id string) (ReportType, error) {
-	row := q.db.QueryRowContext(ctx, getReportTypeById, id)
+func (q *Queries) GetTypeById(ctx context.Context, id string) (ReportType, error) {
+	row := q.db.QueryRowContext(ctx, getTypeById, id)
 	var i ReportType
 	err := row.Scan(&i.ID, &i.Name, &i.SystemName)
 	return i, err
 }
 
-const getReportTypeBySystemName = `-- name: GetReportTypeBySystemName :one
+const getTypeBySystemName = `-- name: GetTypeBySystemName :one
 SELECT id, name, system_name
 FROM report_type
 WHERE system_name = ?
 `
 
-func (q *Queries) GetReportTypeBySystemName(ctx context.Context, systemName string) (ReportType, error) {
-	row := q.db.QueryRowContext(ctx, getReportTypeBySystemName, systemName)
+func (q *Queries) GetTypeBySystemName(ctx context.Context, systemName string) (ReportType, error) {
+	row := q.db.QueryRowContext(ctx, getTypeBySystemName, systemName)
 	var i ReportType
 	err := row.Scan(&i.ID, &i.Name, &i.SystemName)
 	return i, err
 }
 
-const updateReportType = `-- name: UpdateReportType :exec
+const updateType = `-- name: UpdateType :exec
 UPDATE report_type
 SET name = ?, system_name = ?
 WHERE id = ?
 `
 
-type UpdateReportTypeParams struct {
+type UpdateTypeParams struct {
 	Name       string `json:"name"`
 	SystemName string `json:"systemName"`
 	ID         string `json:"id"`
 }
 
-func (q *Queries) UpdateReportType(ctx context.Context, arg UpdateReportTypeParams) error {
-	_, err := q.db.ExecContext(ctx, updateReportType, arg.Name, arg.SystemName, arg.ID)
+func (q *Queries) UpdateType(ctx context.Context, arg UpdateTypeParams) error {
+	_, err := q.db.ExecContext(ctx, updateType, arg.Name, arg.SystemName, arg.ID)
 	return err
 }

@@ -9,31 +9,31 @@ import (
 	"context"
 )
 
-const checkStandardExists = `-- name: CheckStandardExists :one
+const checkStandard = `-- name: CheckStandard :one
 SELECT COUNT(*) as exists_count
 FROM report_standard
 WHERE month = ? AND year = ? AND gender_id = ?
 `
 
-type CheckStandardExistsParams struct {
+type CheckStandardParams struct {
 	Month    int32 `json:"month"`
 	Year     int32 `json:"year"`
 	GenderID int32 `json:"genderId"`
 }
 
-func (q *Queries) CheckStandardExists(ctx context.Context, arg CheckStandardExistsParams) (int64, error) {
-	row := q.db.QueryRowContext(ctx, checkStandardExists, arg.Month, arg.Year, arg.GenderID)
+func (q *Queries) CheckStandard(ctx context.Context, arg CheckStandardParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, checkStandard, arg.Month, arg.Year, arg.GenderID)
 	var exists_count int64
 	err := row.Scan(&exists_count)
 	return exists_count, err
 }
 
-const createStandardHours = `-- name: CreateStandardHours :exec
+const createStandard = `-- name: CreateStandard :exec
 INSERT INTO report_standard (id, month, year, hours, gender_id)
 VALUES (?, ?, ?, ?, ?)
 `
 
-type CreateStandardHoursParams struct {
+type CreateStandardParams struct {
 	ID       string `json:"id"`
 	Month    int32  `json:"month"`
 	Year     int32  `json:"year"`
@@ -41,8 +41,8 @@ type CreateStandardHoursParams struct {
 	GenderID int32  `json:"genderId"`
 }
 
-func (q *Queries) CreateStandardHours(ctx context.Context, arg CreateStandardHoursParams) error {
-	_, err := q.db.ExecContext(ctx, createStandardHours,
+func (q *Queries) CreateStandard(ctx context.Context, arg CreateStandardParams) error {
+	_, err := q.db.ExecContext(ctx, createStandard,
 		arg.ID,
 		arg.Month,
 		arg.Year,
@@ -52,24 +52,24 @@ func (q *Queries) CreateStandardHours(ctx context.Context, arg CreateStandardHou
 	return err
 }
 
-const deleteStandardHours = `-- name: DeleteStandardHours :exec
+const deleteStandard = `-- name: DeleteStandard :exec
 DELETE FROM report_standard
 WHERE id = ?
 `
 
-func (q *Queries) DeleteStandardHours(ctx context.Context, id string) error {
-	_, err := q.db.ExecContext(ctx, deleteStandardHours, id)
+func (q *Queries) DeleteStandard(ctx context.Context, id string) error {
+	_, err := q.db.ExecContext(ctx, deleteStandard, id)
 	return err
 }
 
-const getStandardHours = `-- name: GetStandardHours :one
+const getStandard = `-- name: GetStandard :one
 
 SELECT id, month, year, hours, gender_id
 FROM report_standard
 WHERE month = ? AND year = ? AND gender_id = ?
 `
 
-type GetStandardHoursParams struct {
+type GetStandardParams struct {
 	Month    int32 `json:"month"`
 	Year     int32 `json:"year"`
 	GenderID int32 `json:"genderId"`
@@ -78,8 +78,8 @@ type GetStandardHoursParams struct {
 // ============================================
 // REPORT_STANDART queries
 // ============================================
-func (q *Queries) GetStandardHours(ctx context.Context, arg GetStandardHoursParams) (ReportStandard, error) {
-	row := q.db.QueryRowContext(ctx, getStandardHours, arg.Month, arg.Year, arg.GenderID)
+func (q *Queries) GetStandard(ctx context.Context, arg GetStandardParams) (ReportStandard, error) {
+	row := q.db.QueryRowContext(ctx, getStandard, arg.Month, arg.Year, arg.GenderID)
 	var i ReportStandard
 	err := row.Scan(
 		&i.ID,
@@ -91,19 +91,19 @@ func (q *Queries) GetStandardHours(ctx context.Context, arg GetStandardHoursPara
 	return i, err
 }
 
-const getStandardHoursByMonth = `-- name: GetStandardHoursByMonth :many
+const getStandardByMonth = `-- name: GetStandardByMonth :many
 SELECT id, month, year, hours, gender_id
 FROM report_standard
 WHERE month = ? AND year = ?
 `
 
-type GetStandardHoursByMonthParams struct {
+type GetStandardByMonthParams struct {
 	Month int32 `json:"month"`
 	Year  int32 `json:"year"`
 }
 
-func (q *Queries) GetStandardHoursByMonth(ctx context.Context, arg GetStandardHoursByMonthParams) ([]ReportStandard, error) {
-	rows, err := q.db.QueryContext(ctx, getStandardHoursByMonth, arg.Month, arg.Year)
+func (q *Queries) GetStandardByMonth(ctx context.Context, arg GetStandardByMonthParams) ([]ReportStandard, error) {
+	rows, err := q.db.QueryContext(ctx, getStandardByMonth, arg.Month, arg.Year)
 	if err != nil {
 		return nil, err
 	}
@@ -131,18 +131,54 @@ func (q *Queries) GetStandardHoursByMonth(ctx context.Context, arg GetStandardHo
 	return items, nil
 }
 
-const updateStandardHours = `-- name: UpdateStandardHours :exec
+const getStandardByYear = `-- name: GetStandardByYear :many
+SELECT id, month, year, hours, gender_id
+FROM report_standard
+WHERE year = ?
+ORDER BY month ASC
+`
+
+func (q *Queries) GetStandardByYear(ctx context.Context, year int32) ([]ReportStandard, error) {
+	rows, err := q.db.QueryContext(ctx, getStandardByYear, year)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ReportStandard
+	for rows.Next() {
+		var i ReportStandard
+		if err := rows.Scan(
+			&i.ID,
+			&i.Month,
+			&i.Year,
+			&i.Hours,
+			&i.GenderID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const updateStandard = `-- name: UpdateStandard :exec
 UPDATE report_standard
 SET hours = ?
 WHERE id = ?
 `
 
-type UpdateStandardHoursParams struct {
+type UpdateStandardParams struct {
 	Hours int32  `json:"hours"`
 	ID    string `json:"id"`
 }
 
-func (q *Queries) UpdateStandardHours(ctx context.Context, arg UpdateStandardHoursParams) error {
-	_, err := q.db.ExecContext(ctx, updateStandardHours, arg.Hours, arg.ID)
+func (q *Queries) UpdateStandard(ctx context.Context, arg UpdateStandardParams) error {
+	_, err := q.db.ExecContext(ctx, updateStandard, arg.Hours, arg.ID)
 	return err
 }

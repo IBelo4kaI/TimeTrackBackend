@@ -15,6 +15,7 @@ type Service interface {
 	Create(ctx context.Context, prm repo.CreateVacationParams) (*repo.GetVacationByIdRow, error)
 	ChangeStatus(ctx context.Context, prm repo.UpdateVacationStatusParams) error
 	Years(ctx context.Context, userID string) (*[]int32, error)
+	Delete(ctx context.Context, id string) error
 }
 
 type service struct {
@@ -34,7 +35,7 @@ type vacationStats struct {
 }
 
 func (s *service) Stats(ctx context.Context, userID string, year int32) (*vacationStats, error) {
-	all, err := s.repo.GetVacationDuration(ctx)
+	all, err := s.repo.GetSettingVacationDuration(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -62,6 +63,10 @@ func (s *service) Stats(ctx context.Context, userID string, year int32) (*vacati
 		}
 	}
 
+	if free < 0 {
+		free = 0
+	}
+
 	return &vacationStats{
 		Approved:      approved,
 		Consideration: consideration,
@@ -71,31 +76,31 @@ func (s *service) Stats(ctx context.Context, userID string, year int32) (*vacati
 }
 
 type vacationRow struct {
-	ID          string                     `json:"id"`
-	UserID      string                     `json:"userId"`
-	StartDate   time.Time                  `json:"startDate"`
-	EndDate     time.Time                  `json:"endDate"`
-	Year        int32                      `json:"year"`
-	Description string                     `json:"description"`
-	Status      repo.ReportVacationStatus  `json:"status"`
-	CountDay    int16                      `json:"countDay"`
-	Holidays    []repo.GetAllDaysByTypeRow `json:"holidays"`
-	CreateAt    time.Time                  `json:"createAt"`
+	ID          string                             `json:"id"`
+	UserID      string                             `json:"userId"`
+	StartDate   time.Time                          `json:"startDate"`
+	EndDate     time.Time                          `json:"endDate"`
+	Year        int32                              `json:"year"`
+	Description string                             `json:"description"`
+	Status      repo.ReportVacationStatus          `json:"status"`
+	CountDay    int16                              `json:"countDay"`
+	Holidays    []repo.GetCalendarDaysAllByTypeRow `json:"holidays"`
+	CreateAt    time.Time                          `json:"createAt"`
 }
 
 func (s *service) List(ctx context.Context, userID string, year int32) (*[]vacationRow, error) {
-	vacations, err := s.repo.GetUserVacationsByYear(ctx, repo.GetUserVacationsByYearParams{UserID: userID, Year: year})
+	vacations, err := s.repo.GetVacationsByYear(ctx, repo.GetVacationsByYearParams{UserID: userID, Year: year})
 	if err != nil {
 		return nil, err
 	}
 
-	holidays, err := s.repo.GetAllDaysByType(ctx, repo.GetAllDaysByTypeParams{Year: year, SystemName: "holiday"})
+	holidays, err := s.repo.GetCalendarDaysAllByType(ctx, repo.GetCalendarDaysAllByTypeParams{Year: year, SystemName: "holiday"})
 	if err != nil {
 		return nil, err
 	}
 
 	// Создаём map для быстрого поиска: "MM-DD" -> holiday
-	holidayMap := make(map[string]repo.GetAllDaysByTypeRow)
+	holidayMap := make(map[string]repo.GetCalendarDaysAllByTypeRow)
 	for _, h := range holidays {
 		// Ключ формата "01-15" (месяц-день)
 		key := fmt.Sprintf("%02d-%02d", h.Month, h.Day)
@@ -131,18 +136,18 @@ func (s *service) List(ctx context.Context, userID string, year int32) (*[]vacat
 }
 
 func (s *service) ListAll(ctx context.Context, year int32) (*[]vacationRow, error) {
-	vacations, err := s.repo.GetVacationsByYear(ctx, year)
+	vacations, err := s.repo.GetAdminVacationsByYear(ctx, year)
 	if err != nil {
 		return nil, err
 	}
 
-	holidays, err := s.repo.GetAllDaysByType(ctx, repo.GetAllDaysByTypeParams{Year: year, SystemName: "holiday"})
+	holidays, err := s.repo.GetCalendarDaysAllByType(ctx, repo.GetCalendarDaysAllByTypeParams{Year: year, SystemName: "holiday"})
 	if err != nil {
 		return nil, err
 	}
 
 	// Создаём map для быстрого поиска: "MM-DD" -> holiday
-	holidayMap := make(map[string]repo.GetAllDaysByTypeRow)
+	holidayMap := make(map[string]repo.GetCalendarDaysAllByTypeRow)
 	for _, h := range holidays {
 		// Ключ формата "01-15" (месяц-день)
 		key := fmt.Sprintf("%02d-%02d", h.Month, h.Day)
@@ -177,8 +182,8 @@ func (s *service) ListAll(ctx context.Context, year int32) (*[]vacationRow, erro
 	return &vacationRows, nil
 }
 
-func findHolidaysInRange(holidayMap map[string]repo.GetAllDaysByTypeRow, startDate, endDate time.Time) []repo.GetAllDaysByTypeRow {
-	var result []repo.GetAllDaysByTypeRow
+func findHolidaysInRange(holidayMap map[string]repo.GetCalendarDaysAllByTypeRow, startDate, endDate time.Time) []repo.GetCalendarDaysAllByTypeRow {
+	var result []repo.GetCalendarDaysAllByTypeRow
 
 	// Итерируемся по каждому дню в диапазоне отпуска
 	for d := startDate; !d.After(endDate); d = d.AddDate(0, 0, 1) {
@@ -192,7 +197,7 @@ func findHolidaysInRange(holidayMap map[string]repo.GetAllDaysByTypeRow, startDa
 }
 
 func countVacationDays(
-	holidayMap map[string]repo.GetAllDaysByTypeRow,
+	holidayMap map[string]repo.GetCalendarDaysAllByTypeRow,
 	startDate, endDate time.Time,
 ) int16 {
 	var count int16
@@ -244,4 +249,11 @@ func (s *service) Years(ctx context.Context, userID string) (*[]int32, error) {
 	}
 
 	return &years, nil
+}
+
+func (s *service) Delete(ctx context.Context, id string) error {
+	if err := s.repo.DeleteVacation(ctx, id); err != nil {
+		return err
+	}
+	return nil
 }

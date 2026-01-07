@@ -9,64 +9,64 @@ import (
 )
 
 type Querier interface {
-	CheckDayExists(ctx context.Context, arg CheckDayExistsParams) (int64, error)
-	CheckStandardExists(ctx context.Context, arg CheckStandardExistsParams) (int64, error)
-	CheckUserReportExists(ctx context.Context, arg CheckUserReportExistsParams) (int64, error)
-	CountDaysByType(ctx context.Context, arg CountDaysByTypeParams) (int64, error)
-	CountDaysWork(ctx context.Context, arg CountDaysWorkParams) (int64, error)
-	CreateDay(ctx context.Context, arg CreateDayParams) error
-	CreateReportType(ctx context.Context, arg CreateReportTypeParams) error
-	CreateStandardHours(ctx context.Context, arg CreateStandardHoursParams) error
-	CreateUserReport(ctx context.Context, arg CreateUserReportParams) error
+	CheckCalendarDayExists(ctx context.Context, arg CheckCalendarDayExistsParams) (int64, error)
+	CheckReportUserExists(ctx context.Context, arg CheckReportUserExistsParams) (int64, error)
+	CheckStandard(ctx context.Context, arg CheckStandardParams) (int64, error)
+	CreateCalendarDay(ctx context.Context, arg CreateCalendarDayParams) error
+	CreateReportUser(ctx context.Context, arg CreateReportUserParams) error
+	CreateStandard(ctx context.Context, arg CreateStandardParams) error
+	CreateType(ctx context.Context, arg CreateTypeParams) error
 	CreateVacation(ctx context.Context, arg CreateVacationParams) error
 	DeleteCalendarDay(ctx context.Context, id string) error
-	DeleteReportType(ctx context.Context, id string) error
-	DeleteStandardHours(ctx context.Context, id string) error
-	DeleteUserReport(ctx context.Context, arg DeleteUserReportParams) error
+	DeleteReportUser(ctx context.Context, arg DeleteReportUserParams) error
+	DeleteStandard(ctx context.Context, id string) error
+	DeleteType(ctx context.Context, id string) error
 	DeleteVacation(ctx context.Context, id string) error
-	GetAllDays(ctx context.Context, year int32) ([]GetAllDaysRow, error)
-	GetAllDaysByType(ctx context.Context, arg GetAllDaysByTypeParams) ([]GetAllDaysByTypeRow, error)
-	GetAllReportTypes(ctx context.Context) ([]ReportType, error)
-	GetDay(ctx context.Context, arg GetDayParams) (GetDayRow, error)
+	GetAdminVacationsByYear(ctx context.Context, year int32) ([]GetAdminVacationsByYearRow, error)
+	GetCalendarDay(ctx context.Context, arg GetCalendarDayParams) (GetCalendarDayRow, error)
 	// ============================================
 	// REPORT_CALENDAR queries
 	// ============================================
-	GetDays(ctx context.Context, arg GetDaysParams) ([]GetDaysRow, error)
-	GetDaysByType(ctx context.Context, arg GetDaysByTypeParams) ([]GetDaysByTypeRow, error)
-	GetMonthTotalHours(ctx context.Context, arg GetMonthTotalHoursParams) (float64, error)
-	// ============================================
-	// REPORT_TYPE queries
-	// ============================================
-	GetReportTypeById(ctx context.Context, id string) (ReportType, error)
-	GetReportTypeBySystemName(ctx context.Context, systemName string) (ReportType, error)
-	// ============================================
-	// REPORT_STANDART queries
-	// ============================================
-	GetStandardHours(ctx context.Context, arg GetStandardHoursParams) (ReportStandard, error)
-	GetStandardHoursByMonth(ctx context.Context, arg GetStandardHoursByMonthParams) ([]ReportStandard, error)
-	GetUserDayReport(ctx context.Context, id string) (GetUserDayReportRow, error)
+	GetCalendarDays(ctx context.Context, arg GetCalendarDaysParams) ([]GetCalendarDaysRow, error)
+	GetCalendarDaysAll(ctx context.Context, year int32) ([]GetCalendarDaysAllRow, error)
+	GetCalendarDaysAllByType(ctx context.Context, arg GetCalendarDaysAllByTypeParams) ([]GetCalendarDaysAllByTypeRow, error)
+	GetCalendarDaysByType(ctx context.Context, arg GetCalendarDaysByTypeParams) ([]GetCalendarDaysByTypeRow, error)
+	GetReportUserById(ctx context.Context, id string) (GetReportUserByIdRow, error)
+	GetReportUserCountByType(ctx context.Context, arg GetReportUserCountByTypeParams) (int64, error)
+	GetReportUserCountWork(ctx context.Context, arg GetReportUserCountWorkParams) (int64, error)
 	// ============================================
 	// REPORT_USER queries
 	// ============================================
-	GetUserMonthReport(ctx context.Context, arg GetUserMonthReportParams) ([]GetUserMonthReportRow, error)
-	// ============================================
-	// REPORT_VACATION queries
-	// ============================================
-	GetUserVacations(ctx context.Context, userID string) ([]GetUserVacationsRow, error)
-	GetUserVacationsByYear(ctx context.Context, arg GetUserVacationsByYearParams) ([]GetUserVacationsByYearRow, error)
-	GetVacationApproved(ctx context.Context, userID string) ([]GetVacationApprovedRow, error)
-	GetVacationById(ctx context.Context, id string) (GetVacationByIdRow, error)
+	GetReportUserForMonth(ctx context.Context, arg GetReportUserForMonthParams) ([]GetReportUserForMonthRow, error)
+	GetReportUserTotalHours(ctx context.Context, arg GetReportUserTotalHoursParams) (float64, error)
 	// ============================================
 	// REPORT_SETTING queries
 	// ============================================
-	GetVacationDuration(ctx context.Context) (int32, error)
-	GetVacationsByYear(ctx context.Context, year int32) ([]GetVacationsByYearRow, error)
+	GetSettingVacationDuration(ctx context.Context) (int32, error)
+	// ============================================
+	// REPORT_STANDART queries
+	// ============================================
+	GetStandard(ctx context.Context, arg GetStandardParams) (ReportStandard, error)
+	GetStandardByMonth(ctx context.Context, arg GetStandardByMonthParams) ([]ReportStandard, error)
+	GetStandardByYear(ctx context.Context, year int32) ([]ReportStandard, error)
+	GetTypeAll(ctx context.Context) ([]ReportType, error)
+	// ============================================
+	// REPORT_TYPE queries
+	// ============================================
+	GetTypeById(ctx context.Context, id string) (ReportType, error)
+	GetTypeBySystemName(ctx context.Context, systemName string) (ReportType, error)
+	GetVacationApproved(ctx context.Context, userID string) ([]GetVacationApprovedRow, error)
+	GetVacationById(ctx context.Context, id string) (GetVacationByIdRow, error)
+	// ============================================
+	// REPORT_VACATION queries
+	// ============================================
+	GetVacations(ctx context.Context, userID string) ([]GetVacationsRow, error)
+	GetVacationsByYear(ctx context.Context, arg GetVacationsByYearParams) ([]GetVacationsByYearRow, error)
 	GetYearsVacation(ctx context.Context, userID string) ([]int32, error)
-	UpdateDay(ctx context.Context, arg UpdateDayParams) error
-	UpdateReportType(ctx context.Context, arg UpdateReportTypeParams) error
-	UpdateStandardHours(ctx context.Context, arg UpdateStandardHoursParams) error
-	UpdateUserReport(ctx context.Context, arg UpdateUserReportParams) error
-	UpdateVacation(ctx context.Context, arg UpdateVacationParams) error
+	UpdateCalendarDay(ctx context.Context, arg UpdateCalendarDayParams) error
+	UpdateReportUser(ctx context.Context, arg UpdateReportUserParams) error
+	UpdateStandard(ctx context.Context, arg UpdateStandardParams) error
+	UpdateType(ctx context.Context, arg UpdateTypeParams) error
 	UpdateVacationStatus(ctx context.Context, arg UpdateVacationStatusParams) error
 }
 

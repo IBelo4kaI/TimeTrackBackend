@@ -9,7 +9,7 @@ import (
 	"context"
 )
 
-const getVacationDuration = `-- name: GetVacationDuration :one
+const getSettingVacationDuration = `-- name: GetSettingVacationDuration :one
 
 SELECT vacation_duration
 FROM report_setting
@@ -19,8 +19,8 @@ WHERE id = 1
 // ============================================
 // REPORT_SETTING queries
 // ============================================
-func (q *Queries) GetVacationDuration(ctx context.Context) (int32, error) {
-	row := q.db.QueryRowContext(ctx, getVacationDuration)
+func (q *Queries) GetSettingVacationDuration(ctx context.Context) (int32, error) {
+	row := q.db.QueryRowContext(ctx, getSettingVacationDuration)
 	var vacation_duration int32
 	err := row.Scan(&vacation_duration)
 	return vacation_duration, err

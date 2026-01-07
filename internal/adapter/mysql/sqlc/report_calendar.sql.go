@@ -10,31 +10,31 @@ import (
 	"database/sql"
 )
 
-const checkDayExists = `-- name: CheckDayExists :one
+const checkCalendarDayExists = `-- name: CheckCalendarDayExists :one
 SELECT COUNT(*) as exists_count
 FROM report_calendar
 WHERE day = ? AND month = ? AND year = ?
 `
 
-type CheckDayExistsParams struct {
+type CheckCalendarDayExistsParams struct {
 	Day   int32 `json:"day"`
 	Month int32 `json:"month"`
 	Year  int32 `json:"year"`
 }
 
-func (q *Queries) CheckDayExists(ctx context.Context, arg CheckDayExistsParams) (int64, error) {
-	row := q.db.QueryRowContext(ctx, checkDayExists, arg.Day, arg.Month, arg.Year)
+func (q *Queries) CheckCalendarDayExists(ctx context.Context, arg CheckCalendarDayExistsParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, checkCalendarDayExists, arg.Day, arg.Month, arg.Year)
 	var exists_count int64
 	err := row.Scan(&exists_count)
 	return exists_count, err
 }
 
-const createDay = `-- name: CreateDay :exec
+const createCalendarDay = `-- name: CreateCalendarDay :exec
 INSERT INTO report_calendar (id, day, month, year, description, is_paid_vacation, type_id)
 VALUES (?, ?, ?, ?, ?, ?, ?)
 `
 
-type CreateDayParams struct {
+type CreateCalendarDayParams struct {
 	ID             string         `json:"id"`
 	Day            int32          `json:"day"`
 	Month          int32          `json:"month"`
@@ -44,8 +44,8 @@ type CreateDayParams struct {
 	TypeID         string         `json:"typeId"`
 }
 
-func (q *Queries) CreateDay(ctx context.Context, arg CreateDayParams) error {
-	_, err := q.db.ExecContext(ctx, createDay,
+func (q *Queries) CreateCalendarDay(ctx context.Context, arg CreateCalendarDayParams) error {
+	_, err := q.db.ExecContext(ctx, createCalendarDay,
 		arg.ID,
 		arg.Day,
 		arg.Month,
@@ -67,136 +67,7 @@ func (q *Queries) DeleteCalendarDay(ctx context.Context, id string) error {
 	return err
 }
 
-const getAllDays = `-- name: GetAllDays :many
-SELECT
-    rc.id,
-    rc.day,
-    rc.month,
-    rc.year,
-    COALESCE(rc.description, '') as description,  -- Возвращаем пустую строку вместо NULL
-    rc.is_paid_vacation,
-    rc.type_id,
-    rt.name as type_name,
-    rt.system_name as type_system_name
-FROM report_calendar rc
-INNER JOIN report_type rt ON rc.type_id = rt.id
-WHERE rc.year = ?
-ORDER BY rc.day ASC
-`
-
-type GetAllDaysRow struct {
-	ID             string `json:"id"`
-	Day            int32  `json:"day"`
-	Month          int32  `json:"month"`
-	Year           int32  `json:"year"`
-	Description    string `json:"description"`
-	IsPaidVacation bool   `json:"isPaidVacation"`
-	TypeID         string `json:"typeId"`
-	TypeName       string `json:"typeName"`
-	TypeSystemName string `json:"typeSystemName"`
-}
-
-func (q *Queries) GetAllDays(ctx context.Context, year int32) ([]GetAllDaysRow, error) {
-	rows, err := q.db.QueryContext(ctx, getAllDays, year)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []GetAllDaysRow
-	for rows.Next() {
-		var i GetAllDaysRow
-		if err := rows.Scan(
-			&i.ID,
-			&i.Day,
-			&i.Month,
-			&i.Year,
-			&i.Description,
-			&i.IsPaidVacation,
-			&i.TypeID,
-			&i.TypeName,
-			&i.TypeSystemName,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const getAllDaysByType = `-- name: GetAllDaysByType :many
-SELECT
-    rc.id,
-    rc.day,
-    rc.month,
-    rc.year,
-    COALESCE(rc.description, '') as description,  -- Возвращаем пустую строку вместо NULL
-    rc.is_paid_vacation,
-    rc.type_id,
-    rt.name as type_name,
-    rt.system_name as type_system_name
-FROM report_calendar rc
-INNER JOIN report_type rt ON rc.type_id = rt.id
-WHERE rc.year = ? AND rt.system_name = ?
-ORDER BY rc.day ASC
-`
-
-type GetAllDaysByTypeParams struct {
-	Year       int32  `json:"year"`
-	SystemName string `json:"systemName"`
-}
-
-type GetAllDaysByTypeRow struct {
-	ID             string `json:"id"`
-	Day            int32  `json:"day"`
-	Month          int32  `json:"month"`
-	Year           int32  `json:"year"`
-	Description    string `json:"description"`
-	IsPaidVacation bool   `json:"isPaidVacation"`
-	TypeID         string `json:"typeId"`
-	TypeName       string `json:"typeName"`
-	TypeSystemName string `json:"typeSystemName"`
-}
-
-func (q *Queries) GetAllDaysByType(ctx context.Context, arg GetAllDaysByTypeParams) ([]GetAllDaysByTypeRow, error) {
-	rows, err := q.db.QueryContext(ctx, getAllDaysByType, arg.Year, arg.SystemName)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []GetAllDaysByTypeRow
-	for rows.Next() {
-		var i GetAllDaysByTypeRow
-		if err := rows.Scan(
-			&i.ID,
-			&i.Day,
-			&i.Month,
-			&i.Year,
-			&i.Description,
-			&i.IsPaidVacation,
-			&i.TypeID,
-			&i.TypeName,
-			&i.TypeSystemName,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const getDay = `-- name: GetDay :one
+const getCalendarDay = `-- name: GetCalendarDay :one
 SELECT
     rc.id,
     rc.day,
@@ -212,13 +83,13 @@ INNER JOIN report_type rt ON rc.type_id = rt.id
 WHERE rc.day = ? AND rc.month = ? AND rc.year = ?
 `
 
-type GetDayParams struct {
+type GetCalendarDayParams struct {
 	Day   int32 `json:"day"`
 	Month int32 `json:"month"`
 	Year  int32 `json:"year"`
 }
 
-type GetDayRow struct {
+type GetCalendarDayRow struct {
 	ID             string         `json:"id"`
 	Day            int32          `json:"day"`
 	Month          int32          `json:"month"`
@@ -230,9 +101,9 @@ type GetDayRow struct {
 	TypeSystemName string         `json:"typeSystemName"`
 }
 
-func (q *Queries) GetDay(ctx context.Context, arg GetDayParams) (GetDayRow, error) {
-	row := q.db.QueryRowContext(ctx, getDay, arg.Day, arg.Month, arg.Year)
-	var i GetDayRow
+func (q *Queries) GetCalendarDay(ctx context.Context, arg GetCalendarDayParams) (GetCalendarDayRow, error) {
+	row := q.db.QueryRowContext(ctx, getCalendarDay, arg.Day, arg.Month, arg.Year)
+	var i GetCalendarDayRow
 	err := row.Scan(
 		&i.ID,
 		&i.Day,
@@ -247,7 +118,7 @@ func (q *Queries) GetDay(ctx context.Context, arg GetDayParams) (GetDayRow, erro
 	return i, err
 }
 
-const getDays = `-- name: GetDays :many
+const getCalendarDays = `-- name: GetCalendarDays :many
 
 SELECT
     rc.id,
@@ -265,12 +136,12 @@ WHERE rc.month = ? AND rc.year = ?
 ORDER BY rc.day ASC
 `
 
-type GetDaysParams struct {
+type GetCalendarDaysParams struct {
 	Month int32 `json:"month"`
 	Year  int32 `json:"year"`
 }
 
-type GetDaysRow struct {
+type GetCalendarDaysRow struct {
 	ID             string `json:"id"`
 	Day            int32  `json:"day"`
 	Month          int32  `json:"month"`
@@ -285,15 +156,15 @@ type GetDaysRow struct {
 // ============================================
 // REPORT_CALENDAR queries
 // ============================================
-func (q *Queries) GetDays(ctx context.Context, arg GetDaysParams) ([]GetDaysRow, error) {
-	rows, err := q.db.QueryContext(ctx, getDays, arg.Month, arg.Year)
+func (q *Queries) GetCalendarDays(ctx context.Context, arg GetCalendarDaysParams) ([]GetCalendarDaysRow, error) {
+	rows, err := q.db.QueryContext(ctx, getCalendarDays, arg.Month, arg.Year)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []GetDaysRow
+	var items []GetCalendarDaysRow
 	for rows.Next() {
-		var i GetDaysRow
+		var i GetCalendarDaysRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.Day,
@@ -318,7 +189,136 @@ func (q *Queries) GetDays(ctx context.Context, arg GetDaysParams) ([]GetDaysRow,
 	return items, nil
 }
 
-const getDaysByType = `-- name: GetDaysByType :many
+const getCalendarDaysAll = `-- name: GetCalendarDaysAll :many
+SELECT
+    rc.id,
+    rc.day,
+    rc.month,
+    rc.year,
+    COALESCE(rc.description, '') as description,  -- Возвращаем пустую строку вместо NULL
+    rc.is_paid_vacation,
+    rc.type_id,
+    rt.name as type_name,
+    rt.system_name as type_system_name
+FROM report_calendar rc
+INNER JOIN report_type rt ON rc.type_id = rt.id
+WHERE rc.year = ?
+ORDER BY rc.month ASC, rc.day ASC
+`
+
+type GetCalendarDaysAllRow struct {
+	ID             string `json:"id"`
+	Day            int32  `json:"day"`
+	Month          int32  `json:"month"`
+	Year           int32  `json:"year"`
+	Description    string `json:"description"`
+	IsPaidVacation bool   `json:"isPaidVacation"`
+	TypeID         string `json:"typeId"`
+	TypeName       string `json:"typeName"`
+	TypeSystemName string `json:"typeSystemName"`
+}
+
+func (q *Queries) GetCalendarDaysAll(ctx context.Context, year int32) ([]GetCalendarDaysAllRow, error) {
+	rows, err := q.db.QueryContext(ctx, getCalendarDaysAll, year)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetCalendarDaysAllRow
+	for rows.Next() {
+		var i GetCalendarDaysAllRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Day,
+			&i.Month,
+			&i.Year,
+			&i.Description,
+			&i.IsPaidVacation,
+			&i.TypeID,
+			&i.TypeName,
+			&i.TypeSystemName,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getCalendarDaysAllByType = `-- name: GetCalendarDaysAllByType :many
+SELECT
+    rc.id,
+    rc.day,
+    rc.month,
+    rc.year,
+    COALESCE(rc.description, '') as description,  -- Возвращаем пустую строку вместо NULL
+    rc.is_paid_vacation,
+    rc.type_id,
+    rt.name as type_name,
+    rt.system_name as type_system_name
+FROM report_calendar rc
+INNER JOIN report_type rt ON rc.type_id = rt.id
+WHERE rc.year = ? AND rt.system_name = ?
+ORDER BY rc.month ASC, rc.day ASC
+`
+
+type GetCalendarDaysAllByTypeParams struct {
+	Year       int32  `json:"year"`
+	SystemName string `json:"systemName"`
+}
+
+type GetCalendarDaysAllByTypeRow struct {
+	ID             string `json:"id"`
+	Day            int32  `json:"day"`
+	Month          int32  `json:"month"`
+	Year           int32  `json:"year"`
+	Description    string `json:"description"`
+	IsPaidVacation bool   `json:"isPaidVacation"`
+	TypeID         string `json:"typeId"`
+	TypeName       string `json:"typeName"`
+	TypeSystemName string `json:"typeSystemName"`
+}
+
+func (q *Queries) GetCalendarDaysAllByType(ctx context.Context, arg GetCalendarDaysAllByTypeParams) ([]GetCalendarDaysAllByTypeRow, error) {
+	rows, err := q.db.QueryContext(ctx, getCalendarDaysAllByType, arg.Year, arg.SystemName)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetCalendarDaysAllByTypeRow
+	for rows.Next() {
+		var i GetCalendarDaysAllByTypeRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Day,
+			&i.Month,
+			&i.Year,
+			&i.Description,
+			&i.IsPaidVacation,
+			&i.TypeID,
+			&i.TypeName,
+			&i.TypeSystemName,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getCalendarDaysByType = `-- name: GetCalendarDaysByType :many
 SELECT
     rc.id,
     rc.day,
@@ -335,13 +335,13 @@ WHERE rc.month = ? AND rc.year = ? AND rt.system_name = ?
 ORDER BY rc.day ASC
 `
 
-type GetDaysByTypeParams struct {
+type GetCalendarDaysByTypeParams struct {
 	Month      int32  `json:"month"`
 	Year       int32  `json:"year"`
 	SystemName string `json:"systemName"`
 }
 
-type GetDaysByTypeRow struct {
+type GetCalendarDaysByTypeRow struct {
 	ID             string `json:"id"`
 	Day            int32  `json:"day"`
 	Month          int32  `json:"month"`
@@ -353,15 +353,15 @@ type GetDaysByTypeRow struct {
 	TypeSystemName string `json:"typeSystemName"`
 }
 
-func (q *Queries) GetDaysByType(ctx context.Context, arg GetDaysByTypeParams) ([]GetDaysByTypeRow, error) {
-	rows, err := q.db.QueryContext(ctx, getDaysByType, arg.Month, arg.Year, arg.SystemName)
+func (q *Queries) GetCalendarDaysByType(ctx context.Context, arg GetCalendarDaysByTypeParams) ([]GetCalendarDaysByTypeRow, error) {
+	rows, err := q.db.QueryContext(ctx, getCalendarDaysByType, arg.Month, arg.Year, arg.SystemName)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []GetDaysByTypeRow
+	var items []GetCalendarDaysByTypeRow
 	for rows.Next() {
-		var i GetDaysByTypeRow
+		var i GetCalendarDaysByTypeRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.Day,
@@ -386,19 +386,19 @@ func (q *Queries) GetDaysByType(ctx context.Context, arg GetDaysByTypeParams) ([
 	return items, nil
 }
 
-const updateDay = `-- name: UpdateDay :exec
+const updateCalendarDay = `-- name: UpdateCalendarDay :exec
 UPDATE report_calendar
 SET description = ?, type_id = ?
 WHERE id = ?
 `
 
-type UpdateDayParams struct {
+type UpdateCalendarDayParams struct {
 	Description sql.NullString `json:"description"`
 	TypeID      string         `json:"typeId"`
 	ID          string         `json:"id"`
 }
 
-func (q *Queries) UpdateDay(ctx context.Context, arg UpdateDayParams) error {
-	_, err := q.db.ExecContext(ctx, updateDay, arg.Description, arg.TypeID, arg.ID)
+func (q *Queries) UpdateCalendarDay(ctx context.Context, arg UpdateCalendarDayParams) error {
+	_, err := q.db.ExecContext(ctx, updateCalendarDay, arg.Description, arg.TypeID, arg.ID)
 	return err
 }

@@ -2,19 +2,19 @@
 -- REPORT_VACATION queries
 -- ============================================
 
--- name: GetUserVacations :many
+-- name: GetVacations :many
 SELECT id, user_id, start_date, end_date, year, COALESCE(description, '') as description, status, create_at
 FROM report_vacation
 WHERE user_id = ?
 ORDER BY create_at DESC;
 
--- name: GetUserVacationsByYear :many
+-- name: GetVacationsByYear :many
 SELECT id, user_id, start_date, end_date, year, COALESCE(description, '') as description, status, create_at
 FROM report_vacation
 WHERE user_id = ? AND year = ?
 ORDER BY create_at DESC;
 
--- name: GetVacationsByYear :many
+-- name: GetAdminVacationsByYear :many
 SELECT id, user_id, start_date, end_date, year, COALESCE(description, '') as description, status, create_at
 FROM report_vacation
 WHERE year = ?
@@ -43,11 +43,6 @@ VALUES (?, ?, ?, ?, ?, ?, ?);
 -- name: UpdateVacationStatus :exec
 UPDATE report_vacation
 SET status = ?
-WHERE id = ?;
-
--- name: UpdateVacation :exec
-UPDATE report_vacation
-SET start_date = ?, end_date = ?, year = ?, status = ?,  description = ?
 WHERE id = ?;
 
 -- name: DeleteVacation :exec

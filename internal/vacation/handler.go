@@ -175,6 +175,25 @@ func (h *Handler) Years(c *fiber.Ctx) error {
 	return c.JSON(years)
 }
 
+func (h *Handler) Delete(c *fiber.Ctx) error {
+	vacationID := c.Params("vacation")
+	if vacationID == "" {
+		return h.respondError(c, http.StatusBadRequest, "vacation ID is required")
+	}
+
+	err := h.service.Delete(c.Context(), vacationID)
+	if err != nil {
+		h.logger.Error("failed to delete report",
+			slog.String("vacation_id", vacationID),
+			slog.String("error", err.Error()),
+		)
+		return h.respondError(c, http.StatusInternalServerError, "failed to delete report")
+	}
+
+	c.Status(http.StatusOK)
+	return nil
+}
+
 // ErrorResponse представляет стандартный формат ошибки
 type ErrorResponse struct {
 	Error   string `json:"error"`

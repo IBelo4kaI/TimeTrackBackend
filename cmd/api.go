@@ -4,6 +4,8 @@ import (
 	repo "TimeTrack/internal/adapter/mysql/sqlc"
 	"TimeTrack/internal/calendar"
 	"TimeTrack/internal/report"
+	"TimeTrack/internal/standard"
+	types "TimeTrack/internal/type"
 	"TimeTrack/internal/vacation"
 	"database/sql"
 	"log/slog"
@@ -48,14 +50,23 @@ func (app *application) mount() *fiber.App {
 	calendarService := calendar.NewService(repo.New(app.db), app.db)
 	calendarHandler := calendar.NewHandler(calendarService, app.logger)
 
+	standardService := standard.NewService(repo.New(app.db), app.db)
+	standardHandler := standard.NewHandler(standardService, app.logger)
+
+	typesService := types.NewService(repo.New(app.db), app.db)
+	typesHandler := types.NewHandler(typesService, app.logger)
+
 	v1 := fiber.Group("v1")
 	// admin := v1.Group("/admin")
 
 	report := v1.Group("/report")
 	calendar := v1.Group("/calendar")
 	vacation := v1.Group("/vacation")
+	standard := v1.Group("/standard")
+	types := v1.Group("/type")
 
 	report.Get("/list/:user/:month/:year", reportHandler.List)
+	report.Get("/monthstats/:user/:month/:year", reportHandler.MonthStats)
 	report.Post("/create", reportHandler.Create)
 	report.Post("/update", reportHandler.Update)
 	report.Delete("/delete/:user/:day/:month/:year", reportHandler.Delete)
@@ -66,8 +77,17 @@ func (app *application) mount() *fiber.App {
 	vacation.Get("/years/:user", vacationHandler.Years)
 	vacation.Post("/create", vacationHandler.Create)
 	vacation.Post("/change-status", vacationHandler.ChangeStatus)
+	vacation.Delete("/delete/:vacation", vacationHandler.Delete)
 
-	calendar.Get("/list/:month/:year", calendarHandler.List)
+	calendar.Get("/list/:month/:year", calendarHandler.ListMonth)
+	calendar.Get("/list/:year", calendarHandler.ListYear)
+	calendar.Post("/create", calendarHandler.Create)
+
+	types.Get("/list", typesHandler.List)
+
+	standard.Post("/create", standardHandler.Create)
+	standard.Post("/update", standardHandler.Update)
+	standard.Get("/listforsetting/:year", standardHandler.ListForSetting)
 
 	return fiber
 }

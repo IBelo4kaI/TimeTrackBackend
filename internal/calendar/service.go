@@ -7,7 +7,10 @@ import (
 )
 
 type Service interface {
-	List(ctx context.Context, prm repo.GetDaysParams) ([]repo.GetDaysRow, error)
+	ListMonth(ctx context.Context, prm repo.GetCalendarDaysParams) (*[]repo.GetCalendarDaysRow, error)
+	ListYear(ctx context.Context, year int32) (*[]repo.GetCalendarDaysAllRow, error)
+	Create(ctx context.Context, prm repo.CreateCalendarDayParams) (*repo.GetCalendarDayRow, error)
+	Delete(ctx context.Context, id string) error
 }
 
 type service struct {
@@ -19,11 +22,41 @@ func NewService(repo repo.Querier, db *sql.DB) Service {
 	return &service{repo: repo, db: db}
 }
 
-func (s *service) List(ctx context.Context, prm repo.GetDaysParams) ([]repo.GetDaysRow, error) {
-	calendar, err := s.repo.GetDays(ctx, prm)
+func (s *service) ListMonth(ctx context.Context, prm repo.GetCalendarDaysParams) (*[]repo.GetCalendarDaysRow, error) {
+	calendar, err := s.repo.GetCalendarDays(ctx, prm)
 	if err != nil {
 		return nil, err
 	}
 
-	return calendar, nil
+	return &calendar, nil
+}
+
+func (s *service) ListYear(ctx context.Context, year int32) (*[]repo.GetCalendarDaysAllRow, error) {
+	calendar, err := s.repo.GetCalendarDaysAll(ctx, year)
+	if err != nil {
+		return nil, err
+	}
+
+	return &calendar, nil
+}
+
+func (s *service) Create(ctx context.Context, prm repo.CreateCalendarDayParams) (*repo.GetCalendarDayRow, error) {
+	err := s.repo.CreateCalendarDay(ctx, prm)
+	if err != nil {
+		return nil, err
+	}
+
+	calendar, err := s.repo.GetCalendarDay(ctx, repo.GetCalendarDayParams{Day: prm.Day, Month: prm.Month, Year: prm.Year})
+	if err != nil {
+		return nil, err
+	}
+
+	return &calendar, nil
+}
+
+func (s *service) Delete(ctx context.Context, id string) error {
+	if err := s.repo.DeleteCalendarDay(ctx, id); err != nil {
+		return err
+	}
+	return nil
 }

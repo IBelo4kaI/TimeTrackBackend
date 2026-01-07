@@ -8,10 +8,11 @@ import (
 )
 
 type Service interface {
-	List(ctx context.Context, prm repo.GetUserMonthReportParams) (*[]repo.GetUserMonthReportRow, error)
+	List(ctx context.Context, prm repo.GetReportUserForMonthParams) (*[]repo.GetReportUserForMonthRow, error)
 	Create(ctx context.Context, prm CreateReportParams) (*ReportResponse, error)
 	Update(ctx context.Context, prm UpdateReportParams) (*ReportResponse, error)
-	Delete(ctx context.Context, prm repo.DeleteUserReportParams) error
+	Delete(ctx context.Context, prm repo.DeleteReportUserParams) error
+	MonthStats(ctx context.Context, userID string, month, year int32) (*monthStats, error)
 }
 
 type service struct {
@@ -51,8 +52,8 @@ type UpdateReportParams struct {
 	Type  string  `json:"typeSystemName"`
 }
 
-func (s *service) List(ctx context.Context, prm repo.GetUserMonthReportParams) (*[]repo.GetUserMonthReportRow, error) {
-	reports, err := s.repo.GetUserMonthReport(ctx, prm)
+func (s *service) List(ctx context.Context, prm repo.GetReportUserForMonthParams) (*[]repo.GetReportUserForMonthRow, error) {
+	reports, err := s.repo.GetReportUserForMonth(ctx, prm)
 	if err != nil {
 		return nil, fmt.Errorf("get user month report: %w", err)
 	}
@@ -61,12 +62,12 @@ func (s *service) List(ctx context.Context, prm repo.GetUserMonthReportParams) (
 }
 
 func (s *service) Create(ctx context.Context, prm CreateReportParams) (*ReportResponse, error) {
-	reportType, err := s.repo.GetReportTypeBySystemName(ctx, prm.Type)
+	reportType, err := s.repo.GetTypeBySystemName(ctx, prm.Type)
 	if err != nil {
 		return nil, fmt.Errorf("get report type: %w", err)
 	}
 
-	if err := s.repo.CreateUserReport(ctx, repo.CreateUserReportParams{
+	if err := s.repo.CreateReportUser(ctx, repo.CreateReportUserParams{
 		ID:     prm.ID,
 		UserID: prm.UserID,
 		Day:    prm.Day,
@@ -82,12 +83,12 @@ func (s *service) Create(ctx context.Context, prm CreateReportParams) (*ReportRe
 }
 
 func (s *service) Update(ctx context.Context, prm UpdateReportParams) (*ReportResponse, error) {
-	reportType, err := s.repo.GetReportTypeBySystemName(ctx, prm.Type)
+	reportType, err := s.repo.GetTypeBySystemName(ctx, prm.Type)
 	if err != nil {
 		return nil, fmt.Errorf("get report type: %w", err)
 	}
 
-	if err := s.repo.UpdateUserReport(ctx, repo.UpdateUserReportParams{
+	if err := s.repo.UpdateReportUser(ctx, repo.UpdateReportUserParams{
 		ID:     prm.ID,
 		Hours:  prm.Hours,
 		TypeID: reportType.ID,
@@ -98,8 +99,8 @@ func (s *service) Update(ctx context.Context, prm UpdateReportParams) (*ReportRe
 	return s.buildReportResponse(ctx, prm.ID)
 }
 
-func (s *service) Delete(ctx context.Context, prm repo.DeleteUserReportParams) error {
-	if err := s.repo.DeleteUserReport(ctx, prm); err != nil {
+func (s *service) Delete(ctx context.Context, prm repo.DeleteReportUserParams) error {
+	if err := s.repo.DeleteReportUser(ctx, prm); err != nil {
 		return fmt.Errorf("delete user report: %w", err)
 	}
 	return nil
@@ -107,15 +108,15 @@ func (s *service) Delete(ctx context.Context, prm repo.DeleteUserReportParams) e
 
 // monthStats содержит агрегированную статистику за месяц
 type monthStats struct {
-	totalHours  float64
-	workDays    int64
-	medicalDays int64
+	TotalHours  float64 `json:"totalHours"`
+	WorkDays    int64   `json:"workDays"`
+	MedicalDays int64   `json:"medicalDays"`
 }
 
 // getMonthStats получает всю статистику за месяц одним вызовом
-func (s *service) GetMonthStats(ctx context.Context, userID string, month, year int32) (*monthStats, error) {
+func (s *service) MonthStats(ctx context.Context, userID string, month, year int32) (*monthStats, error) {
 	// Получение общих часов
-	totalHours, err := s.repo.GetMonthTotalHours(ctx, repo.GetMonthTotalHoursParams{
+	totalHours, err := s.repo.GetReportUserTotalHours(ctx, repo.GetReportUserTotalHoursParams{
 		UserID: userID,
 		Month:  month,
 		Year:   year,
@@ -125,7 +126,7 @@ func (s *service) GetMonthStats(ctx context.Context, userID string, month, year 
 	}
 
 	// Подсчет рабочих дней
-	workDays, err := s.repo.CountDaysWork(ctx, repo.CountDaysWorkParams{
+	workDays, err := s.repo.GetReportUserCountWork(ctx, repo.GetReportUserCountWorkParams{
 		UserID: userID,
 		Month:  month,
 		Year:   year,
@@ -135,13 +136,13 @@ func (s *service) GetMonthStats(ctx context.Context, userID string, month, year 
 	}
 
 	// Получение типа больничных
-	medicalType, err := s.repo.GetReportTypeBySystemName(ctx, "medical")
+	medicalType, err := s.repo.GetTypeBySystemName(ctx, "medical")
 	if err != nil {
 		return nil, fmt.Errorf("get medical type: %w", err)
 	}
 
 	// Подсчет дней больничных
-	medicalDays, err := s.repo.CountDaysByType(ctx, repo.CountDaysByTypeParams{
+	medicalDays, err := s.repo.GetReportUserCountByType(ctx, repo.GetReportUserCountByTypeParams{
 		UserID: userID,
 		Month:  month,
 		Year:   year,
@@ -152,15 +153,15 @@ func (s *service) GetMonthStats(ctx context.Context, userID string, month, year 
 	}
 
 	return &monthStats{
-		totalHours:  totalHours,
-		workDays:    workDays,
-		medicalDays: medicalDays,
+		TotalHours:  totalHours,
+		WorkDays:    workDays,
+		MedicalDays: medicalDays,
 	}, nil
 }
 
 // buildReportResponse создает ответ с отчетом и статистикой
 func (s *service) buildReportResponse(ctx context.Context, reportID string) (*ReportResponse, error) {
-	report, err := s.repo.GetUserDayReport(ctx, reportID)
+	report, err := s.repo.GetReportUserById(ctx, reportID)
 	if err != nil {
 		return nil, fmt.Errorf("get user day report: %w", err)
 	}

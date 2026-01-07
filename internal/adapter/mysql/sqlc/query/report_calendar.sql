@@ -2,7 +2,7 @@
 -- REPORT_CALENDAR queries
 -- ============================================
 
--- name: GetDays :many
+-- name: GetCalendarDays :many
 SELECT
     rc.id,
     rc.day,
@@ -18,7 +18,7 @@ INNER JOIN report_type rt ON rc.type_id = rt.id
 WHERE rc.month = ? AND rc.year = ?
 ORDER BY rc.day ASC;
 
--- name: GetDaysByType :many
+-- name: GetCalendarDaysByType :many
 SELECT
     rc.id,
     rc.day,
@@ -34,7 +34,7 @@ INNER JOIN report_type rt ON rc.type_id = rt.id
 WHERE rc.month = ? AND rc.year = ? AND rt.system_name = ?
 ORDER BY rc.day ASC;
 
--- name: GetAllDays :many
+-- name: GetCalendarDaysAll :many
 SELECT
     rc.id,
     rc.day,
@@ -48,9 +48,9 @@ SELECT
 FROM report_calendar rc
 INNER JOIN report_type rt ON rc.type_id = rt.id
 WHERE rc.year = ?
-ORDER BY rc.day ASC;
+ORDER BY rc.month ASC, rc.day ASC;
 
--- name: GetAllDaysByType :many
+-- name: GetCalendarDaysAllByType :many
 SELECT
     rc.id,
     rc.day,
@@ -64,9 +64,9 @@ SELECT
 FROM report_calendar rc
 INNER JOIN report_type rt ON rc.type_id = rt.id
 WHERE rc.year = ? AND rt.system_name = ?
-ORDER BY rc.day ASC;
+ORDER BY rc.month ASC, rc.day ASC;
 
--- name: GetDay :one
+-- name: GetCalendarDay :one
 SELECT
     rc.id,
     rc.day,
@@ -81,11 +81,11 @@ FROM report_calendar rc
 INNER JOIN report_type rt ON rc.type_id = rt.id
 WHERE rc.day = ? AND rc.month = ? AND rc.year = ?;
 
--- name: CreateDay :exec
+-- name: CreateCalendarDay :exec
 INSERT INTO report_calendar (id, day, month, year, description, is_paid_vacation, type_id)
 VALUES (?, ?, ?, ?, ?, ?, ?);
 
--- name: UpdateDay :exec
+-- name: UpdateCalendarDay :exec
 UPDATE report_calendar
 SET description = ?, type_id = ?
 WHERE id = ?;
@@ -94,7 +94,7 @@ WHERE id = ?;
 DELETE FROM report_calendar
 WHERE id = ?;
 
--- name: CheckDayExists :one
+-- name: CheckCalendarDayExists :one
 SELECT COUNT(*) as exists_count
 FROM report_calendar
 WHERE day = ? AND month = ? AND year = ?;

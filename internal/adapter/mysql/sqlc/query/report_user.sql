@@ -2,7 +2,7 @@
 -- REPORT_USER queries
 -- ============================================
 
--- name: GetUserMonthReport :many
+-- name: GetReportUserForMonth :many
 SELECT
     ru.id,
     ru.user_id,
@@ -18,7 +18,7 @@ INNER JOIN report_type rt ON ru.type_id = rt.id
 WHERE ru.user_id = ? AND ru.month = ? AND ru.year = ?
 ORDER BY ru.day ASC;
 
--- name: GetUserDayReport :one
+-- name: GetReportUserById :one
 SELECT
     ru.id,
     ru.user_id,
@@ -33,36 +33,36 @@ FROM report_user ru
 INNER JOIN report_type rt ON ru.type_id = rt.id
 WHERE ru.id = ?;
 
--- name: GetMonthTotalHours :one
+-- name: GetReportUserTotalHours :one
 SELECT CAST(COALESCE(SUM(hours), 0.0) AS FLOAT) AS total_hours
 FROM report_user
 WHERE user_id = ? AND month = ? AND year = ?;
 
--- name: CountDaysByType :one
+-- name: GetReportUserCountByType :one
 SELECT COUNT(DISTINCT day) as days_count
 FROM report_user
 WHERE user_id = ? AND month = ? AND year = ? AND type_id = ?;
 
--- name: CountDaysWork :one
+-- name: GetReportUserCountWork :one
 SELECT COUNT(DISTINCT day) as days_count
 FROM report_user ru
 INNER JOIN report_type rt ON ru.type_id = rt.id
 WHERE ru.user_id = ? AND ru.month = ? AND ru.year = ? AND (rt.system_name = 'work' OR rt.system_name = 'weekend');
 
--- name: CreateUserReport :exec
+-- name: CreateReportUser :exec
 INSERT INTO report_user (id, user_id, day, month, year, hours, type_id)
 VALUES (?, ?, ?, ?, ?, ?, ?);
 
--- name: UpdateUserReport :exec
+-- name: UpdateReportUser :exec
 UPDATE report_user
 SET hours = ?, type_id = ?
 WHERE id = ?;
 
--- name: CheckUserReportExists :one
+-- name: CheckReportUserExists :one
 SELECT COUNT(*) as exists_count
 FROM report_user
 WHERE user_id = ? AND day = ? AND month = ? AND year = ?;
 
--- name: DeleteUserReport :exec
+-- name: DeleteReportUser :exec
 DELETE FROM report_user
 WHERE user_id = ? AND day = ? AND month = ? AND year = ?;

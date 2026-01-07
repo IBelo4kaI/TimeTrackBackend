@@ -1,8 +1,7 @@
-package calendar
+package standard
 
 import (
 	repo "TimeTrack/internal/adapter/mysql/sqlc"
-	"database/sql"
 	"errors"
 	"log/slog"
 	"net/http"
@@ -23,65 +22,40 @@ func NewHandler(service Service, logger *slog.Logger) *Handler {
 	}
 }
 
-func (h *Handler) ListMonth(c *fiber.Ctx) error {
+func (h *Handler) ListForSetting(c *fiber.Ctx) error {
 	year, err := c.ParamsInt("year")
 	if err != nil || year < 1900 || year > 2100 {
 		return h.respondError(c, http.StatusBadRequest, "invalid year parameter")
 	}
 
-	month, err := c.ParamsInt("month")
-	if err != nil || month < 1 || month > 12 {
-		return h.respondError(c, http.StatusBadRequest, "invalid month parameter")
-	}
-
-	calendars, err := h.service.ListMonth(c.Context(), repo.GetCalendarDaysParams{
-		Month: int32(month),
-		Year:  int32(year),
-	})
-
+	standards, err := h.service.ListForSetting(c.Context(), int32(year))
 	if err != nil {
-		return h.respondError(c, http.StatusBadRequest, err.Error())
+		h.logger.Error("failed to get vacations",
+			slog.Int("year", year),
+			slog.String("error", err.Error()),
+		)
+		return h.respondError(c, http.StatusInternalServerError, "failed to get vacations")
 	}
 
-	return c.JSON(calendars)
-}
-
-func (h *Handler) ListYear(c *fiber.Ctx) error {
-	year, err := c.ParamsInt("year")
-	if err != nil || year < 1900 || year > 2100 {
-		return h.respondError(c, http.StatusBadRequest, "invalid year parameter")
-	}
-
-	calendars, err := h.service.ListYear(c.Context(), int32(year))
-
-	if err != nil {
-		return h.respondError(c, http.StatusBadRequest, err.Error())
-	}
-
-	return c.JSON(calendars)
+	return c.JSON(standards)
 }
 
 type createRequest struct {
-	Day            int32          `json:"day"`
-	Month          int32          `json:"month"`
-	Year           int32          `json:"year"`
-	Description    sql.NullString `json:"description"`
-	IsPaidVacation bool           `json:"isPaidVacation"`
-	TypeID         string         `json:"typeId"`
+	Month    int32 `json:"month"`
+	Year     int32 `json:"year"`
+	Hours    int32 `json:"hours"`
+	GenderID int32 `json:"genderId"`
 }
 
 func (r *createRequest) validate() error {
-	if r.Day < 1 || r.Day > 31 {
-		return errors.New("day must be between 1 and 31")
+	if r.Hours < 0 {
+		return errors.New("hours must be > 0")
 	}
 	if r.Month < 1 || r.Month > 12 {
 		return errors.New("month must be between 1 and 12")
 	}
 	if r.Year < 1900 || r.Year > 2100 {
 		return errors.New("year must be between 1900 and 2100")
-	}
-	if r.TypeID == "" {
-		return errors.New("typeSystemName is required")
 	}
 	return nil
 }
@@ -97,20 +71,18 @@ func (h *Handler) Create(c *fiber.Ctx) error {
 		return h.respondError(c, http.StatusBadRequest, err.Error())
 	}
 
-	report, err := h.service.Create(c.Context(), repo.CreateCalendarDayParams{
-		ID:             uuid.NewString(),
-		Day:            req.Day,
-		Month:          req.Month,
-		Year:           req.Year,
-		Description:    req.Description,
-		IsPaidVacation: req.IsPaidVacation,
-		TypeID:         req.TypeID,
+	report, err := h.service.Create(c.Context(), repo.CreateStandardParams{
+		ID:       uuid.NewString(),
+		Month:    req.Month,
+		Year:     req.Year,
+		Hours:    req.Hours,
+		GenderID: req.GenderID,
 	})
 	if err != nil {
 		h.logger.Error("failed to create report",
-			slog.Int64("Day", int64(req.Day)),
 			slog.Int64("Month", int64(req.Month)),
 			slog.Int64("Year", int64(req.Year)),
+			slog.Int64("GenderID", int64(req.GenderID)),
 			slog.String("error", err.Error()),
 		)
 		return h.respondError(c, http.StatusInternalServerError, "failed to create report")
@@ -119,6 +91,37 @@ func (h *Handler) Create(c *fiber.Ctx) error {
 	return c.Status(http.StatusCreated).JSON(report)
 }
 
+func (h *Handler) Update(c *fiber.Ctx) error {
+	var req repo.UpdateStandardParams
+	if err := c.BodyParser(&req); err != nil {
+		h.logger.Warn("invalid request body", slog.String("error", err.Error()))
+		return h.respondError(c, http.StatusBadRequest, "invalid request body")
+	}
+
+	if req.ID == "" {
+		return errors.New("id is required")
+	}
+	if _, err := uuid.Parse(req.ID); err != nil {
+		return errors.New("id must be a valid UUID")
+	}
+	if req.Hours < 0 {
+		return errors.New("hours no valid")
+	}
+
+	err := h.service.Update(c.Context(), req)
+	if err != nil {
+		h.logger.Error("failed to update report",
+			slog.String("report_id", req.ID),
+			slog.String("error", err.Error()),
+		)
+		return h.respondError(c, http.StatusInternalServerError, "failed to update report")
+	}
+
+	c.Status(http.StatusOK)
+	return nil
+}
+
+// ErrorResponse представляет стандартный формат ошибки
 type ErrorResponse struct {
 	Error   string `json:"error"`
 	Message string `json:"message,omitempty"`

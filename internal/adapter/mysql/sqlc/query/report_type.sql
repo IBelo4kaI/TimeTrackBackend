@@ -2,30 +2,30 @@
 -- REPORT_TYPE queries
 -- ============================================
 
--- name: GetReportTypeById :one
+-- name: GetTypeById :one
 SELECT id, name, system_name
 FROM report_type
 WHERE id = ?;
 
--- name: GetReportTypeBySystemName :one
+-- name: GetTypeBySystemName :one
 SELECT id, name, system_name
 FROM report_type
 WHERE system_name = ?;
 
--- name: GetAllReportTypes :many
+-- name: GetTypeAll :many
 SELECT id, name, system_name
 FROM report_type
 ORDER BY name ASC;
 
--- name: CreateReportType :exec
+-- name: CreateType :exec
 INSERT INTO report_type (id, name, system_name)
 VALUES (?, ?, ?);
 
--- name: UpdateReportType :exec
+-- name: UpdateType :exec
 UPDATE report_type
 SET name = ?, system_name = ?
 WHERE id = ?;
 
--- name: DeleteReportType :exec
+-- name: DeleteType :exec
 DELETE FROM report_type
 WHERE id = ?;

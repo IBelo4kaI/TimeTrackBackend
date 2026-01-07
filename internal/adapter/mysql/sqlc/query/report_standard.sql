@@ -2,30 +2,36 @@
 -- REPORT_STANDART queries
 -- ============================================
 
--- name: GetStandardHours :one
+-- name: GetStandard :one
 SELECT id, month, year, hours, gender_id
 FROM report_standard
 WHERE month = ? AND year = ? AND gender_id = ?;
 
--- name: GetStandardHoursByMonth :many
+-- name: GetStandardByMonth :many
 SELECT id, month, year, hours, gender_id
 FROM report_standard
 WHERE month = ? AND year = ?;
 
--- name: CreateStandardHours :exec
+-- name: GetStandardByYear :many
+SELECT id, month, year, hours, gender_id
+FROM report_standard
+WHERE year = ?
+ORDER BY month ASC;
+
+-- name: CreateStandard :exec
 INSERT INTO report_standard (id, month, year, hours, gender_id)
 VALUES (?, ?, ?, ?, ?);
 
--- name: UpdateStandardHours :exec
+-- name: UpdateStandard :exec
 UPDATE report_standard
 SET hours = ?
 WHERE id = ?;
 
--- name: DeleteStandardHours :exec
+-- name: DeleteStandard :exec
 DELETE FROM report_standard
 WHERE id = ?;
 
--- name: CheckStandardExists :one
+-- name: CheckStandard :one
 SELECT COUNT(*) as exists_count
 FROM report_standard
 WHERE month = ? AND year = ? AND gender_id = ?;

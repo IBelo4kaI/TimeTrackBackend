@@ -9,21 +9,21 @@ import (
 	"context"
 )
 
-const checkUserReportExists = `-- name: CheckUserReportExists :one
+const checkReportUserExists = `-- name: CheckReportUserExists :one
 SELECT COUNT(*) as exists_count
 FROM report_user
 WHERE user_id = ? AND day = ? AND month = ? AND year = ?
 `
 
-type CheckUserReportExistsParams struct {
+type CheckReportUserExistsParams struct {
 	UserID string `json:"userId"`
 	Day    int32  `json:"day"`
 	Month  int32  `json:"month"`
 	Year   int32  `json:"year"`
 }
 
-func (q *Queries) CheckUserReportExists(ctx context.Context, arg CheckUserReportExistsParams) (int64, error) {
-	row := q.db.QueryRowContext(ctx, checkUserReportExists,
+func (q *Queries) CheckReportUserExists(ctx context.Context, arg CheckReportUserExistsParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, checkReportUserExists,
 		arg.UserID,
 		arg.Day,
 		arg.Month,
@@ -34,57 +34,12 @@ func (q *Queries) CheckUserReportExists(ctx context.Context, arg CheckUserReport
 	return exists_count, err
 }
 
-const countDaysByType = `-- name: CountDaysByType :one
-SELECT COUNT(DISTINCT day) as days_count
-FROM report_user
-WHERE user_id = ? AND month = ? AND year = ? AND type_id = ?
-`
-
-type CountDaysByTypeParams struct {
-	UserID string `json:"userId"`
-	Month  int32  `json:"month"`
-	Year   int32  `json:"year"`
-	TypeID string `json:"typeId"`
-}
-
-func (q *Queries) CountDaysByType(ctx context.Context, arg CountDaysByTypeParams) (int64, error) {
-	row := q.db.QueryRowContext(ctx, countDaysByType,
-		arg.UserID,
-		arg.Month,
-		arg.Year,
-		arg.TypeID,
-	)
-	var days_count int64
-	err := row.Scan(&days_count)
-	return days_count, err
-}
-
-const countDaysWork = `-- name: CountDaysWork :one
-SELECT COUNT(DISTINCT day) as days_count
-FROM report_user ru
-INNER JOIN report_type rt ON ru.type_id = rt.id
-WHERE ru.user_id = ? AND ru.month = ? AND ru.year = ? AND (rt.system_name = 'work' OR rt.system_name = 'weekend')
-`
-
-type CountDaysWorkParams struct {
-	UserID string `json:"userId"`
-	Month  int32  `json:"month"`
-	Year   int32  `json:"year"`
-}
-
-func (q *Queries) CountDaysWork(ctx context.Context, arg CountDaysWorkParams) (int64, error) {
-	row := q.db.QueryRowContext(ctx, countDaysWork, arg.UserID, arg.Month, arg.Year)
-	var days_count int64
-	err := row.Scan(&days_count)
-	return days_count, err
-}
-
-const createUserReport = `-- name: CreateUserReport :exec
+const createReportUser = `-- name: CreateReportUser :exec
 INSERT INTO report_user (id, user_id, day, month, year, hours, type_id)
 VALUES (?, ?, ?, ?, ?, ?, ?)
 `
 
-type CreateUserReportParams struct {
+type CreateReportUserParams struct {
 	ID     string  `json:"id"`
 	UserID string  `json:"userId"`
 	Day    int32   `json:"day"`
@@ -94,8 +49,8 @@ type CreateUserReportParams struct {
 	TypeID string  `json:"typeId"`
 }
 
-func (q *Queries) CreateUserReport(ctx context.Context, arg CreateUserReportParams) error {
-	_, err := q.db.ExecContext(ctx, createUserReport,
+func (q *Queries) CreateReportUser(ctx context.Context, arg CreateReportUserParams) error {
+	_, err := q.db.ExecContext(ctx, createReportUser,
 		arg.ID,
 		arg.UserID,
 		arg.Day,
@@ -107,20 +62,20 @@ func (q *Queries) CreateUserReport(ctx context.Context, arg CreateUserReportPara
 	return err
 }
 
-const deleteUserReport = `-- name: DeleteUserReport :exec
+const deleteReportUser = `-- name: DeleteReportUser :exec
 DELETE FROM report_user
 WHERE user_id = ? AND day = ? AND month = ? AND year = ?
 `
 
-type DeleteUserReportParams struct {
+type DeleteReportUserParams struct {
 	UserID string `json:"userId"`
 	Day    int32  `json:"day"`
 	Month  int32  `json:"month"`
 	Year   int32  `json:"year"`
 }
 
-func (q *Queries) DeleteUserReport(ctx context.Context, arg DeleteUserReportParams) error {
-	_, err := q.db.ExecContext(ctx, deleteUserReport,
+func (q *Queries) DeleteReportUser(ctx context.Context, arg DeleteReportUserParams) error {
+	_, err := q.db.ExecContext(ctx, deleteReportUser,
 		arg.UserID,
 		arg.Day,
 		arg.Month,
@@ -129,26 +84,7 @@ func (q *Queries) DeleteUserReport(ctx context.Context, arg DeleteUserReportPara
 	return err
 }
 
-const getMonthTotalHours = `-- name: GetMonthTotalHours :one
-SELECT CAST(COALESCE(SUM(hours), 0.0) AS FLOAT) AS total_hours
-FROM report_user
-WHERE user_id = ? AND month = ? AND year = ?
-`
-
-type GetMonthTotalHoursParams struct {
-	UserID string `json:"userId"`
-	Month  int32  `json:"month"`
-	Year   int32  `json:"year"`
-}
-
-func (q *Queries) GetMonthTotalHours(ctx context.Context, arg GetMonthTotalHoursParams) (float64, error) {
-	row := q.db.QueryRowContext(ctx, getMonthTotalHours, arg.UserID, arg.Month, arg.Year)
-	var total_hours float64
-	err := row.Scan(&total_hours)
-	return total_hours, err
-}
-
-const getUserDayReport = `-- name: GetUserDayReport :one
+const getReportUserById = `-- name: GetReportUserById :one
 SELECT
     ru.id,
     ru.user_id,
@@ -164,7 +100,7 @@ INNER JOIN report_type rt ON ru.type_id = rt.id
 WHERE ru.id = ?
 `
 
-type GetUserDayReportRow struct {
+type GetReportUserByIdRow struct {
 	ID             string  `json:"id"`
 	UserID         string  `json:"userId"`
 	Day            int32   `json:"day"`
@@ -176,9 +112,9 @@ type GetUserDayReportRow struct {
 	TypeSystemName string  `json:"typeSystemName"`
 }
 
-func (q *Queries) GetUserDayReport(ctx context.Context, id string) (GetUserDayReportRow, error) {
-	row := q.db.QueryRowContext(ctx, getUserDayReport, id)
-	var i GetUserDayReportRow
+func (q *Queries) GetReportUserById(ctx context.Context, id string) (GetReportUserByIdRow, error) {
+	row := q.db.QueryRowContext(ctx, getReportUserById, id)
+	var i GetReportUserByIdRow
 	err := row.Scan(
 		&i.ID,
 		&i.UserID,
@@ -193,7 +129,52 @@ func (q *Queries) GetUserDayReport(ctx context.Context, id string) (GetUserDayRe
 	return i, err
 }
 
-const getUserMonthReport = `-- name: GetUserMonthReport :many
+const getReportUserCountByType = `-- name: GetReportUserCountByType :one
+SELECT COUNT(DISTINCT day) as days_count
+FROM report_user
+WHERE user_id = ? AND month = ? AND year = ? AND type_id = ?
+`
+
+type GetReportUserCountByTypeParams struct {
+	UserID string `json:"userId"`
+	Month  int32  `json:"month"`
+	Year   int32  `json:"year"`
+	TypeID string `json:"typeId"`
+}
+
+func (q *Queries) GetReportUserCountByType(ctx context.Context, arg GetReportUserCountByTypeParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, getReportUserCountByType,
+		arg.UserID,
+		arg.Month,
+		arg.Year,
+		arg.TypeID,
+	)
+	var days_count int64
+	err := row.Scan(&days_count)
+	return days_count, err
+}
+
+const getReportUserCountWork = `-- name: GetReportUserCountWork :one
+SELECT COUNT(DISTINCT day) as days_count
+FROM report_user ru
+INNER JOIN report_type rt ON ru.type_id = rt.id
+WHERE ru.user_id = ? AND ru.month = ? AND ru.year = ? AND (rt.system_name = 'work' OR rt.system_name = 'weekend')
+`
+
+type GetReportUserCountWorkParams struct {
+	UserID string `json:"userId"`
+	Month  int32  `json:"month"`
+	Year   int32  `json:"year"`
+}
+
+func (q *Queries) GetReportUserCountWork(ctx context.Context, arg GetReportUserCountWorkParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, getReportUserCountWork, arg.UserID, arg.Month, arg.Year)
+	var days_count int64
+	err := row.Scan(&days_count)
+	return days_count, err
+}
+
+const getReportUserForMonth = `-- name: GetReportUserForMonth :many
 
 SELECT
     ru.id,
@@ -211,13 +192,13 @@ WHERE ru.user_id = ? AND ru.month = ? AND ru.year = ?
 ORDER BY ru.day ASC
 `
 
-type GetUserMonthReportParams struct {
+type GetReportUserForMonthParams struct {
 	UserID string `json:"userId"`
 	Month  int32  `json:"month"`
 	Year   int32  `json:"year"`
 }
 
-type GetUserMonthReportRow struct {
+type GetReportUserForMonthRow struct {
 	ID             string  `json:"id"`
 	UserID         string  `json:"userId"`
 	Day            int32   `json:"day"`
@@ -232,15 +213,15 @@ type GetUserMonthReportRow struct {
 // ============================================
 // REPORT_USER queries
 // ============================================
-func (q *Queries) GetUserMonthReport(ctx context.Context, arg GetUserMonthReportParams) ([]GetUserMonthReportRow, error) {
-	rows, err := q.db.QueryContext(ctx, getUserMonthReport, arg.UserID, arg.Month, arg.Year)
+func (q *Queries) GetReportUserForMonth(ctx context.Context, arg GetReportUserForMonthParams) ([]GetReportUserForMonthRow, error) {
+	rows, err := q.db.QueryContext(ctx, getReportUserForMonth, arg.UserID, arg.Month, arg.Year)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []GetUserMonthReportRow
+	var items []GetReportUserForMonthRow
 	for rows.Next() {
-		var i GetUserMonthReportRow
+		var i GetReportUserForMonthRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.UserID,
@@ -265,19 +246,38 @@ func (q *Queries) GetUserMonthReport(ctx context.Context, arg GetUserMonthReport
 	return items, nil
 }
 
-const updateUserReport = `-- name: UpdateUserReport :exec
+const getReportUserTotalHours = `-- name: GetReportUserTotalHours :one
+SELECT CAST(COALESCE(SUM(hours), 0.0) AS FLOAT) AS total_hours
+FROM report_user
+WHERE user_id = ? AND month = ? AND year = ?
+`
+
+type GetReportUserTotalHoursParams struct {
+	UserID string `json:"userId"`
+	Month  int32  `json:"month"`
+	Year   int32  `json:"year"`
+}
+
+func (q *Queries) GetReportUserTotalHours(ctx context.Context, arg GetReportUserTotalHoursParams) (float64, error) {
+	row := q.db.QueryRowContext(ctx, getReportUserTotalHours, arg.UserID, arg.Month, arg.Year)
+	var total_hours float64
+	err := row.Scan(&total_hours)
+	return total_hours, err
+}
+
+const updateReportUser = `-- name: UpdateReportUser :exec
 UPDATE report_user
 SET hours = ?, type_id = ?
 WHERE id = ?
 `
 
-type UpdateUserReportParams struct {
+type UpdateReportUserParams struct {
 	Hours  float64 `json:"hours"`
 	TypeID string  `json:"typeId"`
 	ID     string  `json:"id"`
 }
 
-func (q *Queries) UpdateUserReport(ctx context.Context, arg UpdateUserReportParams) error {
-	_, err := q.db.ExecContext(ctx, updateUserReport, arg.Hours, arg.TypeID, arg.ID)
+func (q *Queries) UpdateReportUser(ctx context.Context, arg UpdateReportUserParams) error {
+	_, err := q.db.ExecContext(ctx, updateReportUser, arg.Hours, arg.TypeID, arg.ID)
 	return err
 }
